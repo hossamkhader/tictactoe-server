@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
-
 import asyncio
-import websockets
 import json
-import jsonpatch
 import re
 import uuid
+import jsonpatch
+import websockets
 
 
 game = dict()
