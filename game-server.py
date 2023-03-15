@@ -28,9 +28,9 @@ connections = dict()
 
 
 async def echo(websocket, path):
-    global game
-    global player_names
-    global connections
+    # global game
+    # global player_names
+    # global connections
     # game_uuid = uuid.uuid4()
     async for message in websocket:
         # game_id = websocket.request_headers['game-id']
@@ -94,6 +94,10 @@ Throws an Exception if the move was illegal (this could include move was for wro
 wrong game, incorrect grid space) 
 '''
 async def play_move(operation):
+    global game
+    # global player_names
+    # global connections
+
     try:
         game_id = re.findall('/game-(.*)/', operation[0]['path'])[0]
 
@@ -102,27 +106,30 @@ async def play_move(operation):
 
         x = [{'op': 'test', 'path': operation[0]['path'], 'value': None}]
         patch = jsonpatch.JsonPatch(x)
-        patch.apply(game['game-{}'.format(game_id)])
+        patch.apply(game)
         x = [{'op': 'test', 'path': '/game-{}/activePlayer'.format(game_id), 'value': operation[0]['value']}]
         patch = jsonpatch.JsonPatch(x)
-        patch.apply(game['game-{}'.format(game_id)])
+        patch.apply(game)
 
         patch = jsonpatch.JsonPatch(operation)
-        game = patch.apply(game['game-{}'.format(game_id)])
+        game = patch.apply(game)
 
         if game['game-{}'.format(game_id)]['activePlayer'] == '0':
             game['game-{}'.format(game_id)]['activePlayer'] = '1'
         elif game['game-{}'.format(game_id)]['activePlayer'] == '1':
             game['game-{}'.format(game_id)]['activePlayer'] = '0'
         check_winner(game_id)
-        print(json.dumps(game))
+        # print(json.dumps(game))
+        print(json.dumps(game['game-{}'.format(game_id)]))
         # await websocket.send(json.dumps(game))
         ## changed this to broadcast move to all websockets for this game
-        websockets.broadcast(connection, json.dumps(game))
+        websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
         if game['game-{}'.format(game_id)]['winner'] is not None:
             reset_game(game_id)
     except Exception as e:
         print('illegal move')
+
+    
 
 
 '''
@@ -142,6 +149,9 @@ Also sends a message via the websocket containing the initial game state
 
 '''
 async def create_game(websocket, operation):
+    global game
+    # global player_names
+    global connections
     ## EXPECTS MESSAGE IN FORMAT:
     ## {'action': 'create_game', 'player_id': player_uuid}
 
@@ -220,6 +230,8 @@ the player's uuid if successful
 also a success/failure message is sent via websocket to the client
 '''
 async def set_player_name(websocket, operation):
+    global player_names
+
     try:
         # get an id for the player (.hex converts so this can be used like string)
         player_uuid = uuid.uuid4().hex
