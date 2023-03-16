@@ -30,7 +30,15 @@ connections = dict()
 async def echo(websocket, path):
     # global game
     # global player_names
-    # global connections
+    
+    '''
+    2 lines below only for the test game-0000000000 to prevent this from breaking
+    can be removed once we actually are making games    
+    '''
+    global connections
+    connections['game-0000000000'] = {websocket}
+
+
     # game_uuid = uuid.uuid4()
     async for message in websocket:
         # game_id = websocket.request_headers['game-id']
@@ -123,7 +131,13 @@ async def play_move(operation):
         print(json.dumps(game['game-{}'.format(game_id)]))
         # await websocket.send(json.dumps(game))
         ## changed this to broadcast move to all websockets for this game
-        websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
+        
+        # websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
+
+        ## note: I think we should change this on both client and server side to only send: 
+        ## json.dumps(game['game-{}'.format(game_id)])
+        ## since there is no reason client needs all the games' data, just the displayed game
+        websockets.broadcast(connection, json.dumps(game))
         if game['game-{}'.format(game_id)]['winner'] is not None:
             reset_game(game_id)
     except Exception as e:
