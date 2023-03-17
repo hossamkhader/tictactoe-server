@@ -52,9 +52,7 @@ async def echo(websocket, path):
             if operation[0]['action'] == 'create_game':
                 await create_game(websocket, operation)
             if operation[0]['action'] == 'join_game':
-                # await join_game(websocket, operation)
-                pass
-                # need to test join_game
+                await join_game(websocket, operation)
 
 
 
@@ -149,7 +147,7 @@ async def play_move(operation):
 '''
 Creates a game for the player that requested to create a game. Assigns the game a unique identifer
 which can be used for other players (or spectators) to join it. Sends a message via the websocket
-containing the initila state of the game including the game id and the player id for p0 (the player
+containing the initial state of the game including the game id and the player id for p0 (the player
 that requested). If game is successfully created, this function returns the game's UUID.
 
 Inputs: 
@@ -192,39 +190,55 @@ async def create_game(websocket, operation):
 
 
 '''
-Commented join_game out since I have not been able to test it yet
-but I think this aspproach should work for joining a game created as above
+Allows the requesting player to join a game with specified uuid. Assigns the player to the game and adds
+the player's websocket to the connected websockets for that game. Sends a message via the connection
+containing the initial state of the game including any info from the first player's actions, plus the id for
+the 2nd player). If game is successfully created, this function returns the game's UUID.
+
+Inputs: 
+websocket, the socket used by this player
+operation, the message from the websocket in string form
+(Note the following format is expected: {'action': 'join_game', 'player_id': String player_uuid, 'game_id': String game_uuid}
+also note that game_uuid expected is just the id string, don't need to include "game-" in the value.)
+
+Outputs:
+returns UUID of the game that was created
+Also sends a message via the websocket containing the initial game state
+
 '''
-
-
-# async def join_game(websocket, operation):
-#     ## expect join game message in format:
-#     ## {'action': 'join_game', 'player_id': player_uuid, 'game_id': game_uuid}
+async def join_game(websocket, operation):
+    global game
+    global connections
+    ## expect join game message in format:
+    ## {'action': 'join_game', 'player_id': player_uuid, 'game_id': game_uuid}
     
-#     # get new player id and game id from the received message
-#     new_player = operation[0]['player_id']
-#     game_uuid = operation[0]['game_id']
+    # get new player id and game id from the received message
+    new_player = operation[0]['player_id']
+    game_uuid = operation[0]['game_id']
 
-#     ## actually don't think jsonpatch is necessary here, since we send back the whole game anyways
-#     # x = [{'op': 'test', 'path': 'p1', 'value': None}]
-#     # patch = jsonpatch.JsonPatch(x)
-#     # patch.apply(game)
+    try:
+        # check if game has an empty slot for p1
+        if game['game-{}'.format(game_uuid)]['p1'] != None:
+            raise Exception("Game-{} is full.".format(game_uuid))
+        else:
+            ## add the new player id into p1 for that game
+            game['game-{}'.format(game_uuid)]['p1'] = player_names[new_player]
 
-#     try:
-#         # check if game has an empty slot for p1
-#         if game['game-{}'.format(game_uuid)]['p1'] != None:
-#             raise Exception("Game-{} is full.".format(game_uuid))
-#         else:
-#             ## add the new player id into p1 for that game
-#             game['game-{}'.format(game_uuid)]['p1'] = new_player
-#             ## send the game state to that player
-#             connection = connections['game-{}'.format(game_uuid)]
-#             connection.add(websocket)
-#             websocket.broadcast(connection, json.dumps(game))
+            ## add the new player's websocket to the set of connected websockets for that game
+            connection = connections['game-{}'.format(game_uuid)]
+            connection.add(websocket)
+            
+            ## send the game state to the new player
+            ## NOTE: maybe we should think about adding something to prevent this from happening
+            ## at same time that player 1 makes a move? Maybe a dict with a semaphore for each game
+            ## that gets locked during play_move function and released when it returns?
+            websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_uuid)]))
 
-#     except Exception as e:
-#         #if exception maybe this means game id didn't exist?
-#         raise Exception("Failed to join game.")
+    except Exception as e:
+        #if exception maybe this means game id didn't exist?
+        raise Exception("Failed to join game.")
+    
+    return game_uuid
     
 
 '''
