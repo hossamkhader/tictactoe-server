@@ -214,21 +214,22 @@ async def join_game(websocket, operation):
 
     try:
         # check if game has an empty slot for p1
-        if game['game-{}'.format(game_uuid)]['p1'] != None:
-            raise Exception("Game-{} is full.".format(game_uuid))
-        else:
-            ## add the new player id into p1 for that game
-            game['game-{}'.format(game_uuid)]['p1'] = player_names[new_player]
+        patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/p1', 'value': None}])
+        patch.apply(game)
 
-            ## add the new player's websocket to the set of connected websockets for that game
-            connection = connections['game-{}'.format(game_uuid)]
-            connection.add(websocket)
-            
-            ## send the game state to the new player
-            ## NOTE: maybe we should think about adding something to prevent this from happening
-            ## at same time that player 1 makes a move? Maybe a dict with a semaphore for each game
-            ## that gets locked during play_move function and released when it returns?
-            websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_uuid)]))
+        ## add the new player id into p1 for that game
+        patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/p1'.format(game_uuid), 'value': player_names[new_player]}])
+        game = patch.apply(game)
+
+        ## add the new player's websocket to the set of connected websockets for that game
+        connection = connections['game-{}'.format(game_uuid)]
+        connection.add(websocket)
+
+        ## send the game state to the new player
+        ## NOTE: maybe we should think about adding something to prevent this from happening
+        ## at same time that player 1 makes a move? Maybe a dict with a semaphore for each game
+        ## that gets locked during play_move function and released when it returns?
+        websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_uuid)]))
 
     except Exception as e:
         #if exception maybe this means game id didn't exist?
