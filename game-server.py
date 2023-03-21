@@ -168,11 +168,13 @@ async def create_game(websocket, operation):
     # get game id for the game in string form
     game_uuid = uuid.uuid4().hex
     # set the initial board state of the game
-    game['game-{}'.format(game_uuid)] = {'game_id': game_uuid, 'p0': player_names[player_id], 'p1': None, 'activePlayer': '0', 'winner': None,
-                           'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
-                           'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+    tmp = {'p0': player_names[player_id], 'p1': None, 'activePlayer': '0', 'winner': None,
+                 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+                 'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     
     try:
+        patch = jsonpatch.JsonPatch([{'op': 'add', 'path': '/game-{}'.format(game_uuid), 'value': tmp}])
+        game = patch.apply(game)
         # print(json.dumps(game['game-{}'.format(game_uuid)]))
         # send the game via websocket
         await websocket.send(json.dumps(game['game-{}'.format(game_uuid)]))
