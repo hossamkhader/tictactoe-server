@@ -75,20 +75,14 @@ def check_winner(game_id):
     if game[game_id]['piece-2'] == game[game_id]['piece-4'] == game[game_id]['piece-6']:
         game[game_id]['winner'] = game[game_id]['piece-2']
 
-
 def reset_game(game_id):
-    game_id = 'game-{}'.format(game_id)
-    game[game_id]['winner'] = None
-    game[game_id]['activePlayer'] = '0'
-    game[game_id]['piece-0'] = None
-    game[game_id]['piece-1'] = None
-    game[game_id]['piece-2'] = None
-    game[game_id]['piece-3'] = None
-    game[game_id]['piece-4'] = None
-    game[game_id]['piece-5'] = None
-    game[game_id]['piece-6'] = None
-    game[game_id]['piece-7'] = None
-    game[game_id]['piece-8'] = None
+    global game
+    tmp = {'activePlayer': '0', 'winner': None,
+           'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+           'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+    patch = jsonpatch.JsonPatch([{'op': 'add', 'path': '/game-{}'.format(game_id), 'value': tmp}])
+    game = patch.apply(game)
+
 
 '''
 Code for handling an operation that plays a move was moved here. This takes the operation
