@@ -11,6 +11,4 @@ COPY . /usr/src/app
 
 EXPOSE 8000
 
-ENTRYPOINT ["python3"]
-
-CMD ["game-server.py"]
+CMD ["python3", "game-server.py"]
