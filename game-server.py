@@ -110,7 +110,7 @@ async def play_move(operation):
         patch = jsonpatch.JsonPatch(operation)
         game = patch.apply(game)
 
-        ts = datetime.datetime.now().timestamp()
+        ts = datetime.now().timestamp()
         patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/last_move'.format(game_id), 'value': str(ts)}])
         game = patch.apply(game)
 
