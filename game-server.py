@@ -15,8 +15,8 @@ game = dict()
 # once client is set up to create/join games, this test game should be removed
 # NOTE: This formatting is slightly different from the formatting I used in create_game(),
 # which has added fields
-game['game-0000000000'] = {'activePlayer': '0', 'winner': None, 'p0': None, 'p1': None, 'last_move': None,
-                           'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+game['game-0000000000'] = {'game_id': None, 'activePlayer': '0', 'winner': None, 'p0': None, 'p1': None,
+                           'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
                            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
 
 # stores player defined usernames with player's uuid as the key
@@ -171,9 +171,9 @@ async def create_game(websocket, operation):
     # get game id for the game in string form
     game_uuid = uuid.uuid4().hex
     # set the initial board state of the game
-    tmp = {'p0': player_names[player_id], 'p1': None, 'activePlayer': '0', 'winner': None,
-                 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
-                 'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+    tmp = {'game_id': 'game-{}'.format(game_uuid), 'p0': player_names[player_id], 'p1': None, 'activePlayer': '0',
+           'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+           'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     
     try:
         patch = jsonpatch.JsonPatch([{'op': 'add', 'path': '/game-{}'.format(game_uuid), 'value': tmp}])
