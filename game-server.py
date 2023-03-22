@@ -6,40 +6,36 @@ import re
 import uuid
 import jsonpatch
 import websockets
+from datetime import datetime
 
-## dictionary that stores all of the games' gamestate
+# dictionary that stores all the games' gamestate
 game = dict()
 
-## keeping this in for now since it allows the current client to test games
-## once client is set up to create/join games, this test game should be removed
-## NOTE: This formatting is slightly different from the formatting I used in create_game(),
-## which has added fields
-game['game-0000000000'] = {'activePlayer': '0', 'winner': None,
+# keeping this in for now since it allows the current client to test games
+# once client is set up to create/join games, this test game should be removed
+# NOTE: This formatting is slightly different from the formatting I used in create_game(),
+# which has added fields
+game['game-0000000000'] = {'activePlayer': '0', 'winner': None, 'p0': None, 'p1': None, 'last_move': None,
                            'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
                            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
 
-## stores player defined usernames with player's uuid as the key
+# stores player defined usernames with player's uuid as the key
 player_names = dict()
 
-## stores connections for a game (set of the websockets it should broadcast to for updates)
-## note: I think this can allow for easily adding spectators if we decide to, since spectators
-## can simply be added to the set of websockets, and prevented from making moves
+# stores connections for a game (set of the websockets it should broadcast to for updates)
+# note: I think this can allow for easily adding spectators if we decide to, since spectators
+# can simply be added to the set of websockets, and prevented from making moves
 connections = dict()
 
 
 async def echo(websocket, path):
-    # global game
-    # global player_names
-    
-    '''
+    """
     2 lines below only for the test game-0000000000 to prevent this from breaking
-    can be removed once we actually are making games    
-    '''
+    can be removed once we actually are making games
+    """
     global connections
     connections['game-0000000000'] = {websocket}
 
-
-    # game_uuid = uuid.uuid4()
     async for message in websocket:
         # game_id = websocket.request_headers['game-id']
         operation = json.loads(message)
@@ -53,7 +49,6 @@ async def echo(websocket, path):
                 await create_game(websocket, operation)
             if operation[0]['action'] == 'join_game':
                 await join_game(websocket, operation)
-
 
 
 def check_winner(game_id):
@@ -75,6 +70,7 @@ def check_winner(game_id):
     if game[game_id]['piece-2'] == game[game_id]['piece-4'] == game[game_id]['piece-6']:
         game[game_id]['winner'] = game[game_id]['piece-2']
 
+
 def reset_game(game_id):
     global game
     tmp = {'activePlayer': '0', 'winner': None,
@@ -93,10 +89,10 @@ Input: operation string from the websocket, represents the JSONpatch to apply.
 Throws an Exception if the move was illegal (this could include move was for wrong player,
 wrong game, incorrect grid space) 
 '''
+
+
 async def play_move(operation):
     global game
-    # global player_names
-    # global connections
 
     try:
         game_id = re.findall('/game-(.*)/', operation[0]['path'])[0]
@@ -114,28 +110,36 @@ async def play_move(operation):
         patch = jsonpatch.JsonPatch(operation)
         game = patch.apply(game)
 
-        if game['game-{}'.format(game_id)]['activePlayer'] == '0':
-            game['game-{}'.format(game_id)]['activePlayer'] = '1'
-        elif game['game-{}'.format(game_id)]['activePlayer'] == '1':
-            game['game-{}'.format(game_id)]['activePlayer'] = '0'
-        check_winner(game_id)
-        # print(json.dumps(game))
-        print(json.dumps(game['game-{}'.format(game_id)]))
-        # await websocket.send(json.dumps(game))
-        ## changed this to broadcast move to all websockets for this game
-        
-        # websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
+        ts = datetime.datetime.now().timestamp()
+        patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/last_move'.format(game_id), 'value': str(ts)}])
+        game = patch.apply(game)
 
-        ## note: I think we should change this on both client and server side to only send: 
-        ## json.dumps(game['game-{}'.format(game_id)])
-        ## since there is no reason client needs all the games' data, just the displayed game
-        websockets.broadcast(connection, json.dumps(game))
-        if game['game-{}'.format(game_id)]['winner'] is not None:
+        try:
+            patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/activePlayer'.format(game_id), 'value': '0'}])
+            patch.apply(game)
+            patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/activePlayer'.format(game_id), 'value': '1'}])
+            game = patch.apply(game)
+        except:
+            ...
+
+        try:
+            patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/activePlayer'.format(game_id), 'value': '1'}])
+            patch.apply(game)
+            patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/activePlayer'.format(game_id), 'value': '0'}])
+            game = patch.apply(game)
+        except:
+            ...
+
+        check_winner(game_id)
+        websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
+        try:
+            patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/winner'.format(game_id), 'value': None}])
+            patch.apply(game)
+        except:
             reset_game(game_id)
+
     except Exception as e:
         print('illegal move')
-
-    
 
 
 '''
@@ -154,16 +158,15 @@ returns UUID of the game that was created
 Also sends a message via the websocket containing the initial game state
 
 '''
+
+
 async def create_game(websocket, operation):
     global game
-    # global player_names
     global connections
-    ## EXPECTS MESSAGE IN FORMAT:
-    ## {'action': 'create_game', 'player_id': player_uuid}
+    # EXPECTS MESSAGE IN FORMAT:
+    # {'action': 'create_game', 'player_id': player_uuid}
 
     player_id = operation[0]['player_id']
-
-
 
     # get game id for the game in string form
     game_uuid = uuid.uuid4().hex
@@ -202,11 +205,13 @@ returns UUID of the game that was created
 Also sends a message via the websocket containing the initial game state
 
 '''
+
+
 async def join_game(websocket, operation):
     global game
     global connections
-    ## expect join game message in format:
-    ## {'action': 'join_game', 'player_id': player_uuid, 'game_id': game_uuid}
+    # expect join game message in format:
+    # {'action': 'join_game', 'player_id': player_uuid, 'game_id': game_uuid}
     
     # get new player id and game id from the received message
     new_player = operation[0]['player_id']
@@ -217,22 +222,22 @@ async def join_game(websocket, operation):
         patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/p1', 'value': None}])
         patch.apply(game)
 
-        ## add the new player id into p1 for that game
+        # add the new player id into p1 for that game
         patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/p1'.format(game_uuid), 'value': player_names[new_player]}])
         game = patch.apply(game)
 
-        ## add the new player's websocket to the set of connected websockets for that game
+        # add the new player's websocket to the set of connected websockets for that game
         connection = connections['game-{}'.format(game_uuid)]
         connection.add(websocket)
 
-        ## send the game state to the new player
-        ## NOTE: maybe we should think about adding something to prevent this from happening
-        ## at same time that player 1 makes a move? Maybe a dict with a semaphore for each game
-        ## that gets locked during play_move function and released when it returns?
+        # send the game state to the new player
+        # NOTE: maybe we should think about adding something to prevent this from happening
+        # at same time that player 1 makes a move? Maybe a dict with a semaphore for each game
+        # that gets locked during play_move function and released when it returns?
         websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_uuid)]))
 
     except Exception as e:
-        #if exception maybe this means game id didn't exist?
+        # if exception maybe this means game id didn't exist?
         raise Exception("Failed to join game.")
     
     return game_uuid
@@ -254,6 +259,8 @@ Outputs:
 the player's uuid if successful
 also a success/failure message is sent via websocket to the client
 '''
+
+
 async def set_player_name(websocket, operation):
     global player_names
 
@@ -276,12 +283,6 @@ async def set_player_name(websocket, operation):
 
     return player_uuid
 
-
-
-
-
-    
-    
 
 async def main():
     async with websockets.serve(echo, "0.0.0.0", 8000):
