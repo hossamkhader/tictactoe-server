@@ -16,8 +16,8 @@ game = dict()
 # NOTE: This formatting is slightly different from the formatting I used in create_game(),
 # which has added fields
 game['game-0000000000'] = {'game_id': None, 'activePlayer': '0', 'winner': None, 'p0': None, 'p1': None,
-                           'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
-                           'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+                           'last_move': None, 'piece-0': '2', 'piece-1': '2', 'piece-2': '2', 'piece-3': '2',
+                           'piece-4': '2', 'piece-5': '2', 'piece-6': '2', 'piece-7': '2', 'piece-8': '2'}
 
 # stores player defined usernames with player's uuid as the key
 player_names = dict()
@@ -283,6 +283,36 @@ async def set_player_name(websocket, operation):
 
     return player_uuid
 
+connected = set()
+
+async def echo2(websocket, path):
+    #ran = random.randint(0, 8)
+    #game_uuid = random.randint(1234567, 9999999)
+
+    #tmp2 = {'game_id': 'game-{}'.format(game_uuid), 'p0': player_names[player_id], 'p1': None, 'activePlayer': '0',
+    #       'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+    #       'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+
+    #global game
+    #game_uuid = uuid.uuid4()
+    gameData = {}
+    connected.add(websocket)
+    try:
+        async for message in websocket:
+            for conn in connected:
+                if conn != websocket:
+                    gameData = json.loads(message)
+                    if gameData['activePlayer'] == '0':
+                        gameData['activePlayer'] = '1'
+                    elif gameData['activePlayer'] == '1' :
+                        gameData['activePlayer'] = '0'
+                gameData['piece-5'] = gameData['activePlayer']       
+                print(json.dumps(gameData))
+                # await websocket.send(json.dumps(game))
+                await conn.send(json.dumps(gameData))
+    finally:
+        # Unregister.
+        connected.remove(websocket)
 
 async def main():
     async with websockets.serve(echo, "0.0.0.0", 8000):
