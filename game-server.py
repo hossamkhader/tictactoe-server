@@ -219,7 +219,7 @@ async def join_game(websocket, operation):
 
     try:
         # check if game has an empty slot for p1
-        patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/p1', 'value': None}])
+        patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/p1'.format(game_uuid), 'value': None}])
         patch.apply(game)
 
         # add the new player id into p1 for that game
