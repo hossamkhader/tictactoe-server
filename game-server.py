@@ -37,8 +37,10 @@ async def echo(websocket, path):
     connections['game-0000000000'] = {websocket}
 
     async for message in websocket:
+        print("message received by websocket:", message)
         # game_id = websocket.request_headers['game-id']
         operation = json.loads(message)
+
         if 'op' in operation[0]:
             if operation[0]['op'] == 'replace':
                 await play_move(operation)
@@ -92,6 +94,7 @@ wrong game, incorrect grid space)
 
 
 async def play_move(operation):
+    # print("message received in play_move:", operation)
     global game
 
     try:
@@ -161,6 +164,8 @@ Also sends a message via the websocket containing the initial game state
 
 
 async def create_game(websocket, operation):
+    # print("message received in create_game:", operation)
+
     global game
     global connections
     # EXPECTS MESSAGE IN FORMAT:
@@ -208,6 +213,8 @@ Also sends a message via the websocket containing the initial game state
 
 
 async def join_game(websocket, operation):
+    # print("message received in join_game:", operation)
+
     global game
     global connections
     # expect join game message in format:
@@ -261,15 +268,17 @@ also a success/failure message is sent via websocket to the client
 '''
 
 
-async def set_player_name(websocket, operation):
+async def set_player_name(websocket, message):
     global player_names
+
+    # print("message received in set_player_name:", message)
 
     try:
         # get an id for the player (.hex converts so this can be used like string)
         player_uuid = uuid.uuid4().hex
         
         # get username from the operation that was loaded from json
-        username = operation[0]['username']
+        username = message[0]['username']
         # add the username to the dict of player_names, with the new id as key
         player_names[player_uuid] = username
 
