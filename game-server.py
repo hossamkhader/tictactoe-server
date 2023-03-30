@@ -20,6 +20,10 @@ game['game-0000000000'] = {'game_id': None, 'activePlayer': '0', 'winner': None,
                            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
 
 # stores player defined usernames with player's uuid as the key
+## NOTE: based on updates discussed 3/28, not clear if we will still be using player uuids
+## if not, we may not need this dict anymore
+## I'm leaving for now  in case we come back to using player UUIDs since that seems like
+## possibly better implementation to me
 player_names = dict()
 
 # stores connections for a game (set of the websockets it should broadcast to for updates)
@@ -37,8 +41,10 @@ async def echo(websocket, path):
     connections['game-0000000000'] = {websocket}
 
     async for message in websocket:
+        print("message received by websocket:", message)
         # game_id = websocket.request_headers['game-id']
         operation = json.loads(message)
+
         if 'op' in operation[0]:
             if operation[0]['op'] == 'replace':
                 await play_move(operation)
@@ -92,6 +98,7 @@ wrong game, incorrect grid space)
 
 
 async def play_move(operation):
+    # print("message received in play_move:", operation)
     global game
 
     try:
@@ -151,7 +158,7 @@ that requested). If game is successfully created, this function returns the game
 Inputs: 
 websocket, the socket used by this player
 operation, the message from the websocket in string form
-(Note the following format is expected: {'action': 'create_game', 'player_id': String player_uuid})
+(Note the following format is expected: [{'action': 'create_game', 'player_id': String player_name}])
 
 Outputs:
 returns UUID of the game that was created
@@ -160,18 +167,25 @@ Also sends a message via the websocket containing the initial game state
 '''
 
 
-async def create_game(websocket, operation):
+async def create_game(websocket, message):
+    # print("message received in create_game:", operation)
+
     global game
     global connections
-    # EXPECTS MESSAGE IN FORMAT:
-    # {'action': 'create_game', 'player_id': player_uuid}
 
-    player_id = operation[0]['player_id']
+    player_id = message[0]['player_id']
+    ## NOTE: changing player_id to be the player name based on discussion from 3/28
 
     # get game id for the game in string form
     game_uuid = uuid.uuid4().hex
     # set the initial board state of the game
-    tmp = {'game_id': 'game-{}'.format(game_uuid), 'p0': player_names[player_id], 'p1': None, 'activePlayer': '0',
+
+    ## old version using player UUID
+    # tmp = {'game_id': 'game-{}'.format(game_uuid), 'p0': player_names[player_id], 'p1': None, 'activePlayer': '0',
+    #        'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+    #        'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+    
+    tmp = {'game_id': 'game-{}'.format(game_uuid), 'p0': player_id, 'p1': None, 'activePlayer': '0',
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     
@@ -197,7 +211,7 @@ the 2nd player). If game is successfully created, this function returns the game
 Inputs: 
 websocket, the socket used by this player
 operation, the message from the websocket in string form
-(Note the following format is expected: {'action': 'join_game', 'player_id': String player_uuid, 'game_id': String game_uuid}
+(Note the following format is expected: [{'action': 'join_game', 'player_id': String player_name, 'game_id': String game_uuid}]
 also note that game_uuid expected is just the id string, don't need to include "game-" in the value.)
 
 Outputs:
@@ -207,15 +221,16 @@ Also sends a message via the websocket containing the initial game state
 '''
 
 
-async def join_game(websocket, operation):
+async def join_game(websocket, message):
+    # print("message received in join_game:", message)
+
     global game
     global connections
-    # expect join game message in format:
-    # {'action': 'join_game', 'player_id': player_uuid, 'game_id': game_uuid}
     
     # get new player id and game id from the received message
-    new_player = operation[0]['player_id']
-    game_uuid = operation[0]['game_id']
+    new_player = message[0]['player_id']
+    game_uuid = message[0]['game_id']
+    ## NOTE: as of now player_id here will really be the username
 
     try:
         # check if game has an empty slot for p1
@@ -223,7 +238,8 @@ async def join_game(websocket, operation):
         patch.apply(game)
 
         # add the new player id into p1 for that game
-        patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/p1'.format(game_uuid), 'value': player_names[new_player]}])
+        # patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/p1'.format(game_uuid), 'value': player_names[new_player]}])
+        patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/p1'.format(game_uuid), 'value': new_player}])
         game = patch.apply(game)
 
         # add the new player's websocket to the set of connected websockets for that game
@@ -253,7 +269,7 @@ by the client). Function also returns the player uuid if successful.
 Inputs:
 websocket, the websocket used by this player
 operation, the message containing the username
-(Note the following format is expected: {'action': 'set_player_name', 'username': String username})
+(Note the following format is expected: [{'action': 'set_player_name', 'username': String username}])
 
 Outputs:
 the player's uuid if successful
@@ -261,15 +277,17 @@ also a success/failure message is sent via websocket to the client
 '''
 
 
-async def set_player_name(websocket, operation):
+async def set_player_name(websocket, message):
     global player_names
+
+    # print("message received in set_player_name:", message)
 
     try:
         # get an id for the player (.hex converts so this can be used like string)
         player_uuid = uuid.uuid4().hex
         
         # get username from the operation that was loaded from json
-        username = operation[0]['username']
+        username = message[0]['username']
         # add the username to the dict of player_names, with the new id as key
         player_names[player_uuid] = username
 
