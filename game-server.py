@@ -43,18 +43,20 @@ async def echo(websocket, path):
     async for message in websocket:
         print("message received by websocket:", message)
         # game_id = websocket.request_headers['game-id']
-        operation = json.loads(message)
+        json_message = json.loads(message)
 
-        if 'op' in operation[0]:
-            if operation[0]['op'] == 'replace':
-                await play_move(operation)
-        if 'action' in operation[0]:
-            if operation[0]['action'] == 'set_player_name':
-                await set_player_name(websocket, operation)
-            if operation[0]['action'] == 'create_game':
-                await create_game(websocket, operation)
-            if operation[0]['action'] == 'join_game':
-                await join_game(websocket, operation)
+        if 'op' in json_message[0]:
+            if json_message[0]['op'] == 'replace':
+                await play_move(json_message)
+        if 'action' in json_message[0]:
+            if json_message[0]['action'] == 'set_player_name':
+                await set_player_name(websocket, json_message)
+            if json_message[0]['action'] == 'create_game':
+                await create_game(websocket, json_message)
+            if json_message[0]['action'] == 'join_game':
+                await join_game(websocket, json_message)
+            if json_message[0]['action'] == 'spectate_game':
+                await spectate_game(websocket, json_message)
 
 
 def check_winner(game_id):
@@ -257,6 +259,36 @@ async def join_game(websocket, message):
         raise Exception("Failed to join game.")
     
     return game_uuid
+
+'''
+Used when a player requests to spectate a game with the specified game UUID.
+Adds the player's websocket to the connected websockets for that game, then
+sends the spectator the current game-state. They should receive updates any
+time the game-state is updated further by other functions.
+
+Input: expected as [{'action': 'spectate_game', 'game_id', game_uuid}]
+Output: websocket message with game state to spectator if successful
+        or websocket message that joining game failed otherwise
+'''
+async def spectate_game(websocket, message):
+    # print("message received in spectate_game:", message)
+
+    global game
+    global connections
+
+    game_uuid = message[0]['game_id']
+
+    try:
+        connection = connections['game-{}'.format(game_uuid)]
+        connection.add(websocket)
+
+        await websocket.send(json.dumps(game['game-{}'.format(game_uuid)]))
+    except Exception as e:
+        msg = {'action': 'spectate_game', 'description': 'fail'}
+        await websocket.send(json.dumps(msg))
+        raise Exception("Failed to join game as spectator.")
+    
+    return True
     
 
 '''
