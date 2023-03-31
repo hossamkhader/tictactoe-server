@@ -23,6 +23,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.client = DummyClient()
 
+    ## Test setting player name
     async def test_set_player_name(self):
         await self.client.connect(WEBSOCKET_1)
         await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P0}]), WEBSOCKET_1)
@@ -33,29 +34,34 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         expected = {'action': 'set_player_name', 'description': 'success', 'username': P0, 'player_id': dictMsg['player_id']}
         self.assertEqual(dictMsg, expected)
 
+
+    ## Test creating a game
     async def test_create_game(self):
         await self.client.connect(WEBSOCKET_1)
-        await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P0}]), WEBSOCKET_1)
-        msg = await self.client.receive(WEBSOCKET_1)
-        dictMsg = json.loads(msg)
+        ## code for setting player name not necessary as of now since we aren't using player uuid anymore
+        ## but I'm leaving here since it seems like it could be useful to go back to this later
+        # await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P0}]), WEBSOCKET_1)
+        # msg = await self.client.receive(WEBSOCKET_1)
+        # dictMsg = json.loads(msg)
         # player_id = dictMsg['player_id']
 
         await self.client.send(json.dumps([{'action': 'create_game', 'player_id': P0}]), WEBSOCKET_1)
         msg = await self.client.receive(WEBSOCKET_1)
         dictMsg = json.loads(msg)
 
-        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': None, 'activePlayer': '0',
+        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': None, 'activePlayer': '0', 'player_count': 1,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
 
         self.assertEqual(dictMsg, expected)
 
+    ## Test joining a game that another player created
     async def test_join_game(self):
 
         await self.client.connect(WEBSOCKET_1)
-        await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P0}]), WEBSOCKET_1)
-        msg = await self.client.receive(WEBSOCKET_1)
-        dictMsg = json.loads(msg)
+        # await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P0}]), WEBSOCKET_1)
+        # msg = await self.client.receive(WEBSOCKET_1)
+        # dictMsg = json.loads(msg)
         # P0 = dictMsg['player_id']
 
         await self.client.send(json.dumps([{'action': 'create_game', 'player_id': P0}]), WEBSOCKET_1)
@@ -65,9 +71,9 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         await self.client.connect(WEBSOCKET_2)
 
-        await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P1}]), WEBSOCKET_2)
-        msg = await self.client.receive(WEBSOCKET_2)
-        dictMsg = json.loads(msg)
+        # await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P1}]), WEBSOCKET_2)
+        # msg = await self.client.receive(WEBSOCKET_2)
+        # dictMsg = json.loads(msg)
         # P1 = dictMsg['player_id']
 
         ## remove "game-" from game_id since input is just the uuid # as a string
@@ -77,15 +83,36 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         msg = await self.client.receive(WEBSOCKET_1)
         msg2 = await self.client.receive(WEBSOCKET_2)
 
-        ## TEST: check that both websockets got the updated game-state
+        ## TEST: check that both websockets got the game_ready message
         self.assertEqual(msg, msg2)
+
+        # dictMsg = json.loads(msg)        
+
+        # expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': P1, 'activePlayer': '0',
+        #    'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+        #    'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+
+        expected = 'game_ready'
+
+        self.assertEqual(msg, expected)
+
+         ## TEST: check that both websockets got the updated game-state
+        
+        request = json.dumps([{'action': 'get_game_state', 'game_id': game_id}])
+        await self.client.send(request, WEBSOCKET_1)
+        await self.client.send(request, WEBSOCKET_2)
+
+        msg = await self.client.receive(WEBSOCKET_1)
+        msg2 = await self.client.receive(WEBSOCKET_2)
+        self.assertEqual(msg, msg2)
+
 
         dictMsg = json.loads(msg)        
 
-        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': P1, 'activePlayer': '0',
+        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': P1, 'activePlayer': '0', 'player_count': 2,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
-
+        
         self.assertEqual(dictMsg, expected)
 
         # await self.client.close()
@@ -93,10 +120,10 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         ## TEST: you can't add a 3rd player to same game
 
-        await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P2}]), WEBSOCKET_3)
-        msg = await self.client.receive(WEBSOCKET_3)
-        dictMsg = json.loads(msg)
-        player3_id = dictMsg['player_id']
+        # await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P2}]), WEBSOCKET_3)
+        # msg = await self.client.receive(WEBSOCKET_3)
+        # dictMsg = json.loads(msg)
+        # player3_id = dictMsg['player_id']
 
         await self.client.send(json.dumps([{'action': 'join_game', 'player_id': P2, 'game_id': game_id}]), WEBSOCKET_3)
         try:
@@ -139,7 +166,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         msg = await self.client.receive(WEBSOCKET_2)
         dictMsg = json.loads(msg)
 
-        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': None, 'activePlayer': '0',
+        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': None, 'activePlayer': '0', 'player_count': 1,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
         
@@ -158,13 +185,50 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         await self.client.send(json.dumps([{'action': 'join_game', 'player_id': P1, 'game_id': game_id}]), WEBSOCKET_3)
         ## note that WEBSOCKET_2 is spectator's websocket
         msg = await self.client.receive(WEBSOCKET_2)
+
+
+        # dictMsg = json.loads(msg)
+
+        # expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': P1, 'activePlayer': '0',
+        #    'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+        #    'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+
+        expected = 'game_ready'
+        
+        self.assertEqual(msg, expected)
+
+        ## add the 'game-' back in here because game_move expects it
+        # game_id = 'game-' + game_id
+
+        ## TEST: spectator receives update from player 1 making a move
+        move = json.dumps([{'action': 'game_move', 'game_id': game_id, 'player_id': P0, 'piece': 'piece-5'}])
+        await self.client.send(move, WEBSOCKET_1)
+
+        ## NOTE that WEBSOCKET_2 is spectator's websocket
+        msg = await self.client.receive(WEBSOCKET_2)
         dictMsg = json.loads(msg)
 
-        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': P1, 'activePlayer': '0',
-           'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
-           'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': P1, 'activePlayer': '1', 'player_count': 2,
+           'winner': None, 'last_move': dictMsg['last_move'], 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+           'piece-4': None, 'piece-5': '0', 'piece-6': None, 'piece-7': None, 'piece-8': None}
         
         self.assertEqual(dictMsg, expected)
+        
+        ## TEST: spectator receives update from player 2 making a move
+        move = json.dumps([{'action': 'game_move', 'game_id': game_id, 'player_id': P1, 'piece': 'piece-3'}])
+        await self.client.send(move, WEBSOCKET_3)
+
+        msg = await self.client.receive(WEBSOCKET_2)
+        dictMsg = json.loads(msg)
+
+        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': P1, 'activePlayer': '0', 'player_count': 2,
+            'winner': None, 'last_move': dictMsg['last_move'], 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': '1',
+            'piece-4': None, 'piece-5': '0', 'piece-6': None, 'piece-7': None, 'piece-8': None}
+        
+        self.assertEqual(dictMsg, expected)
+        
+
+
 
     
     async def asyncTearDown(self):
@@ -176,6 +240,10 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         unittest.main()
 
 
+## Class for clients to use for testing
+## NOTE: I realized I should have just used 1 websocket
+## and made separate instances of clients but only after I had already set up a lot of tests
+## I'd like to go back and refactor this but it will take some time to do.
 class DummyClient:
 
     def __init__(self):

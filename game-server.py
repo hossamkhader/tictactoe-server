@@ -15,9 +15,13 @@ game = dict()
 # once client is set up to create/join games, this test game should be removed
 # NOTE: This formatting is slightly different from the formatting I used in create_game(),
 # which has added fields
-game['game-0000000000'] = {'game_id': None, 'activePlayer': '0', 'winner': None, 'p0': None, 'p1': None,
+game['game-0000000000'] = {'game_id': None, 'activePlayer': '0', 'winner': None, 'p0': None, 'p1': None, 'player_count': 0,
                            'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
                            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+
+## Constant for # of players required to start a tictactoe game. We can later refactor to use
+## a variable number of required players if we add in new games at a later date
+REQUIRED_PLAYERS = 2
 
 # stores player defined usernames with player's uuid as the key
 ## NOTE: based on updates discussed 3/28, not clear if we will still be using player uuids
@@ -45,10 +49,12 @@ async def echo(websocket, path):
         # game_id = websocket.request_headers['game-id']
         json_message = json.loads(message)
 
-        if 'op' in json_message[0]:
-            if json_message[0]['op'] == 'replace':
-                await play_move(json_message)
+        # if 'op' in json_message[0]:
+        #     if json_message[0]['op'] == 'replace':
+        #         await play_move(json_message)
         if 'action' in json_message[0]:
+            if json_message[0]['action'] == 'game_move':
+                await play_move(websocket, json_message)
             if json_message[0]['action'] == 'set_player_name':
                 await set_player_name(websocket, json_message)
             if json_message[0]['action'] == 'create_game':
@@ -57,6 +63,8 @@ async def echo(websocket, path):
                 await join_game(websocket, json_message)
             if json_message[0]['action'] == 'spectate_game':
                 await spectate_game(websocket, json_message)
+            if json_message[0]['action'] == 'get_game_state':
+                await get_game_state(websocket, json_message)
 
 
 def check_winner(game_id):
@@ -99,12 +107,33 @@ wrong game, incorrect grid space)
 '''
 
 
-async def play_move(operation):
+async def play_move(websocket, message):
     # print("message received in play_move:", operation)
     global game
 
+    ## new message format [{'action': 'game_move', 'game_id': 'gameuuid', 'player_id': 'UserName', 'piece': 'piece-5'}]
+
     try:
-        game_id = re.findall('/game-(.*)/', operation[0]['path'])[0]
+        game_id = message[0]['game_id']
+        ## take off the 'game-' part of game_id
+        # game_id = game_id[5:]
+        player_name = message[0]['player_id']
+        piece = message[0]['piece']
+
+        p0 = game['game-{}'.format(game_id)]['p0']
+        p1 = game['game-{}'.format(game_id)]['p1']
+        player_no = '-1'
+
+        if player_name == p0:
+            player_no = '0'
+        elif player_name == p1:
+            player_no = '1'
+        
+
+        # game_id = re.findall('/game-(.*)/', operation[0]['path'])[0]
+
+        operation = []
+        operation.append({'op': 'replace', 'path': '/game-{}/{}'.format(game_id, piece), 'value': player_no})
 
         # added this code to get the set of websockets for this game
         connection = connections['game-{}'.format(game_id)]
@@ -129,15 +158,17 @@ async def play_move(operation):
             patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/activePlayer'.format(game_id), 'value': '1'}])
             game = patch.apply(game)
         except:
-            ...
+            ## this was just switching it back to 0 so did not work, so putting it inside the except block of the
+            ## previous patch instead
+            try:
+                patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/activePlayer'.format(game_id), 'value': '1'}])
+                patch.apply(game)
+                patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/activePlayer'.format(game_id), 'value': '0'}])
+                game = patch.apply(game)
+            except:
+                ...
 
-        try:
-            patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/activePlayer'.format(game_id), 'value': '1'}])
-            patch.apply(game)
-            patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/activePlayer'.format(game_id), 'value': '0'}])
-            game = patch.apply(game)
-        except:
-            ...
+
 
         check_winner(game_id)
         websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
@@ -147,7 +178,12 @@ async def play_move(operation):
         except:
             reset_game(game_id)
 
+        print(game['game-{}'.format(game_id)])
+
     except Exception as e:
+        ## send message to the client that attempted move if it is illegal
+        msg = json.dumps({'action': 'game_move', 'description': 'Illegal move'})
+        await websocket.send(msg)
         print('illegal move')
 
 
@@ -187,7 +223,7 @@ async def create_game(websocket, message):
     #        'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
     #        'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     
-    tmp = {'game_id': 'game-{}'.format(game_uuid), 'p0': player_id, 'p1': None, 'activePlayer': '0',
+    tmp = {'game_id': 'game-{}'.format(game_uuid), 'p0': player_id, 'p1': None, 'activePlayer': '0', 'player_count': 1,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     
@@ -198,6 +234,8 @@ async def create_game(websocket, message):
         # send the game via websocket
         await websocket.send(json.dumps(game['game-{}'.format(game_uuid)]))
     except Exception as e:
+        msg = json.dumps({'action': 'create_game', 'description': 'fail'})
+        await websocket.send(msg)
         raise Exception("Failed to create game.")
 
     connections['game-{}'.format(game_uuid)] = {websocket}
@@ -244,6 +282,11 @@ async def join_game(websocket, message):
         patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/p1'.format(game_uuid), 'value': new_player}])
         game = patch.apply(game)
 
+        player_count = game['game-{}'.format(game_uuid)]['player_count']
+        player_count = player_count + 1
+        patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/player_count'.format(game_uuid), 'value': player_count}])
+        game = patch.apply(game)
+
         # add the new player's websocket to the set of connected websockets for that game
         connection = connections['game-{}'.format(game_uuid)]
         connection.add(websocket)
@@ -252,9 +295,20 @@ async def join_game(websocket, message):
         # NOTE: maybe we should think about adding something to prevent this from happening
         # at same time that player 1 makes a move? Maybe a dict with a semaphore for each game
         # that gets locked during play_move function and released when it returns?
-        websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_uuid)]))
+
+        # websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_uuid)]))
+        try:
+            patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/player_count'.format(game_uuid), 'value': REQUIRED_PLAYERS}])
+            patch.apply(game)
+            websockets.broadcast(connection, 'game_ready')
+        except:
+            ## here the number of players is not at the required number yet, so don't send game_ready
+            websockets.broadcast(connection, 'player_joined')
+
 
     except Exception as e:
+        msg = json.dumps({'action': 'join_game', 'description': 'fail'})
+        await websocket.send(msg)
         # if exception maybe this means game id didn't exist?
         raise Exception("Failed to join game.")
     
@@ -332,6 +386,27 @@ async def set_player_name(websocket, message):
         raise Exception("Failed to set username.")
 
     return player_uuid
+
+
+'''
+Client can request the gamestate from the server, and server will send the gamestate
+back to just that client.
+
+Input: expects message as [{'action': 'get_game_state', 'game_id': game_uuuid}]
+Output: sends the gamestate back to the client, or a failure message if failed
+'''
+async def get_game_state(websocket, message):
+    game_uuid = message[0]['game_id']
+
+    try:
+        await websocket.send(json.dumps(game['game-{}'.format(game_uuid)]))
+    except Exception as e:
+        msg = {'action': 'get_game_state', 'description': 'fail'}
+        await websocket.send(json.dumps(msg))
+        raise Exception("Failed to get gamestate.")
+    
+    return True
+
 
 
 async def main():
