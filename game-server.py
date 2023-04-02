@@ -223,7 +223,7 @@ async def create_game(websocket, message):
     #        'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
     #        'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     
-    tmp = {'game_id': 'game-{}'.format(game_uuid), 'p0': player_id, 'p1': None, 'activePlayer': '0', 'player_count': 1,
+    tmp = {'game_id': game_uuid, 'p0': player_id, 'p1': None, 'activePlayer': '0', 'player_count': 1,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     
@@ -300,7 +300,7 @@ async def join_game(websocket, message):
         try:
             patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/player_count'.format(game_uuid), 'value': REQUIRED_PLAYERS}])
             patch.apply(game)
-            websockets.broadcast(connection, 'game_ready')
+            websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_uuid)]))
         except:
             ## here the number of players is not at the required number yet, so don't send game_ready
             websockets.broadcast(connection, 'player_joined')
