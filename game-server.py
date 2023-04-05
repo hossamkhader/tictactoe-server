@@ -218,10 +218,11 @@ async def create_game(websocket, message):
     game_uuid = uuid.uuid4().hex
     # set the initial board state of the game
 
-    ## old version using player UUID
-    # tmp = {'game_id': 'game-{}'.format(game_uuid), 'p0': player_names[player_id], 'p1': None, 'activePlayer': '0',
-    #        'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
-    #        'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+    ###################################################################################
+    ###################################################################################
+    ## CODE TO REDUCE SIZE OF GAME UUID FOR TESTING PURPOSES. CONSIDER REMOVING AT END:
+    ###################################################################################
+    game_uuid = game_uuid[:8]
     
     tmp = {'game_id': game_uuid, 'p0': player_id, 'p1': None, 'activePlayer': '0', 'player_count': 1,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
