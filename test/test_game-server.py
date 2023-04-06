@@ -227,13 +227,14 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         game_id = game['game_id']
         p0_id = game['p0']
         p1_id = game['p1']
+        await self.client.receive(WEBSOCKET_1)
         ## here ready to receive gamestate updates from moves    
     
         ## first player chooses piece-0
         move_1 = self.get_move_json(p0_id, game_id, 0)
         await self.client.send(move_1, WEBSOCKET_1)
 
-        msg = await self.client.receive(WEBSOCKET_1)
+        
         msg = await self.client.receive(WEBSOCKET_1)
         msg2 = await self.client.receive(WEBSOCKET_2)
 
@@ -351,10 +352,652 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         expected['winner'] = '0'
         self.assertEqual(expected, dictMsg)
 
+    async def test_check_winner(self):
+        await self.client.connect(WEBSOCKET_1)
+        await self.client.connect(WEBSOCKET_2)
 
+        connected = [WEBSOCKET_1, WEBSOCKET_2]
+
+        game = await self.game_for_testing(WEBSOCKET_1, WEBSOCKET_2)
+        game_id = game['game_id']
+        p0_id = game['p0']
+        p1_id = game['p1']
+        await self.client.receive(WEBSOCKET_1)
+        ## here ready to receive gamestate updates from moves
+
+        #################################
+        # p0 gets 0, 1, 2
+        move1 = self.get_move_json(p0_id, game_id, 0)
+        move2 = self.get_move_json(p1_id, game_id, 3)
+        move3 = self.get_move_json(p0_id, game_id, 1)
+        move4 = self.get_move_json(p1_id, game_id, 4)
+        move5 = self.get_move_json(p0_id, game_id, 2)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        # await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+        # await self.send_move_clear_buffer(move5, WEBSOCKET_1, connected)
+        await self.client.send(move4, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '0'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p0 gets 3, 4, 5
+
+        move1 = self.get_move_json(p0_id, game_id, 3)
+        move2 = self.get_move_json(p1_id, game_id, 2)
+        move3 = self.get_move_json(p0_id, game_id, 4)
+        move4 = self.get_move_json(p1_id, game_id, 6)
+        move5 = self.get_move_json(p0_id, game_id, 5)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.client.send(move4, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '0'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p0 gets 6, 7, 8
+
+        move1 = self.get_move_json(p0_id, game_id, 6)
+        move2 = self.get_move_json(p1_id, game_id, 2)
+        move3 = self.get_move_json(p0_id, game_id, 7)
+        move4 = self.get_move_json(p1_id, game_id, 4)
+        move5 = self.get_move_json(p0_id, game_id, 8)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.client.send(move4, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '0'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+        #################################
+        # p0 gets 0, 3, 6
+
+        move1 = self.get_move_json(p0_id, game_id, 0)
+        move2 = self.get_move_json(p1_id, game_id, 2)
+        move3 = self.get_move_json(p0_id, game_id, 3)
+        move4 = self.get_move_json(p1_id, game_id, 4)
+        move5 = self.get_move_json(p0_id, game_id, 6)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.client.send(move4, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '0'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p0 gets 1, 4, 7
+
+
+        move1 = self.get_move_json(p0_id, game_id, 1)
+        move2 = self.get_move_json(p1_id, game_id, 2)
+        move3 = self.get_move_json(p0_id, game_id, 4)
+        move4 = self.get_move_json(p1_id, game_id, 5)
+        move5 = self.get_move_json(p0_id, game_id, 7)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.client.send(move4, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '0'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p0 gets 2, 5, 8
+
+        
+        move1 = self.get_move_json(p0_id, game_id, 2)
+        move2 = self.get_move_json(p1_id, game_id, 3)
+        move3 = self.get_move_json(p0_id, game_id, 5)
+        move4 = self.get_move_json(p1_id, game_id, 1)
+        move5 = self.get_move_json(p0_id, game_id, 8)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.client.send(move4, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '0'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p0 gets 0, 4 ,8
+
+         
+        move1 = self.get_move_json(p0_id, game_id, 0)
+        move2 = self.get_move_json(p1_id, game_id, 3)
+        move3 = self.get_move_json(p0_id, game_id, 4)
+        move4 = self.get_move_json(p1_id, game_id, 1)
+        move5 = self.get_move_json(p0_id, game_id, 8)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.client.send(move4, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '0'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p0 gets 2, 4, 6   
+
+         
+        move1 = self.get_move_json(p0_id, game_id, 2)
+        move2 = self.get_move_json(p1_id, game_id, 3)
+        move3 = self.get_move_json(p0_id, game_id, 4)
+        move4 = self.get_move_json(p1_id, game_id, 1)
+        move5 = self.get_move_json(p0_id, game_id, 6)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.client.send(move4, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '0'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+##########################################################
+        # TESTS FOR P1 WIN CONDITION START HERE
+
+        #################################
+        # p1 gets 0, 1, 2
+
+        move1 = self.get_move_json(p0_id, game_id, 3)
+        move2 = self.get_move_json(p1_id, game_id, 0)
+        move3 = self.get_move_json(p0_id, game_id, 5)
+        move4 = self.get_move_json(p1_id, game_id, 1)
+        move5 = self.get_move_json(p0_id, game_id, 7)
+        move6 = self.get_move_json(p1_id, game_id, 2)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move6, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '1'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p1 gets 3, 4, 5
+
+        move1 = self.get_move_json(p0_id, game_id, 0)
+        move2 = self.get_move_json(p1_id, game_id, 3)
+        move3 = self.get_move_json(p0_id, game_id, 1)
+        move4 = self.get_move_json(p1_id, game_id, 4)
+        move5 = self.get_move_json(p0_id, game_id, 8)
+        move6 = self.get_move_json(p1_id, game_id, 5)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move6, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '1'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p1 gets 6, 7, 8
+
+        move1 = self.get_move_json(p0_id, game_id, 0)
+        move2 = self.get_move_json(p1_id, game_id, 6)
+        move3 = self.get_move_json(p0_id, game_id, 1)
+        move4 = self.get_move_json(p1_id, game_id, 7)
+        move5 = self.get_move_json(p0_id, game_id, 5)
+        move6 = self.get_move_json(p1_id, game_id, 8)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move6, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '1'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p1 gets 0, 3, 6
+        move1 = self.get_move_json(p0_id, game_id, 1)
+        move2 = self.get_move_json(p1_id, game_id, 0)
+        move3 = self.get_move_json(p0_id, game_id, 2)
+        move4 = self.get_move_json(p1_id, game_id, 3)
+        move5 = self.get_move_json(p0_id, game_id, 8)
+        move6 = self.get_move_json(p1_id, game_id, 6)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move6, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '1'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p1 gets 1, 4, 7
+
+        move1 = self.get_move_json(p0_id, game_id, 3)
+        move2 = self.get_move_json(p1_id, game_id, 1)
+        move3 = self.get_move_json(p0_id, game_id, 5)
+        move4 = self.get_move_json(p1_id, game_id, 4)
+        move5 = self.get_move_json(p0_id, game_id, 6)
+        move6 = self.get_move_json(p1_id, game_id, 7)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move6, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '1'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p1 gets 2, 5, 8
+
+        move1 = self.get_move_json(p0_id, game_id, 0)
+        move2 = self.get_move_json(p1_id, game_id, 2)
+        move3 = self.get_move_json(p0_id, game_id, 1)
+        move4 = self.get_move_json(p1_id, game_id, 5)
+        move5 = self.get_move_json(p0_id, game_id, 3)
+        move6 = self.get_move_json(p1_id, game_id, 8)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move6, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '1'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #################################
+        # p1 gets 0, 4, 8
+        move1 = self.get_move_json(p0_id, game_id, 1)
+        move2 = self.get_move_json(p1_id, game_id, 0)
+        move3 = self.get_move_json(p0_id, game_id, 2)
+        move4 = self.get_move_json(p1_id, game_id, 4)
+        move5 = self.get_move_json(p0_id, game_id, 5)
+        move6 = self.get_move_json(p1_id, game_id, 8)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move6, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '1'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+        
+        
+        #################################
+        # p1 gets 2, 4, 6        
+            
+        move1 = self.get_move_json(p0_id, game_id, 0)
+        move2 = self.get_move_json(p1_id, game_id, 2)
+        move3 = self.get_move_json(p0_id, game_id, 1)
+        move4 = self.get_move_json(p1_id, game_id, 4)
+        move5 = self.get_move_json(p0_id, game_id, 3)
+        move6 = self.get_move_json(p1_id, game_id, 6)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+
+        await self.client.send(move6, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '1'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+        
+                
 ###############################################################
 ####### End of test functions, helper functions below: ########
 ###############################################################
+
+    async def send_move_clear_buffer(self, move, ws, connected):
+        ## send move message
+        await self.client.send(move, ws)
+        ## discard the buffer in receive for each socket
+        for socket in connected:
+            await self.client.receive(socket)
 
     async def get_player_id(self, username, socket):
         await self.client.send(json.dumps([{'action': 'set_player_name', 'username': username}]), socket)

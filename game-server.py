@@ -69,28 +69,30 @@ async def echo(websocket, path):
 
 def check_winner(game_id):
     game_id = 'game-{}'.format(game_id)
-    if game[game_id]['piece-0'] == game[game_id]['piece-1'] == game[game_id]['piece-2']:
+    if game[game_id]['piece-0'] != None and (game[game_id]['piece-0'] == game[game_id]['piece-1'] == game[game_id]['piece-2']):
         game[game_id]['winner'] = game[game_id]['piece-0']
-    if game[game_id]['piece-3'] == game[game_id]['piece-4'] == game[game_id]['piece-5']:
+    elif game[game_id]['piece-3'] != None and (game[game_id]['piece-3'] == game[game_id]['piece-4'] == game[game_id]['piece-5']):
         game[game_id]['winner'] = game[game_id]['piece-3']
-    if game[game_id]['piece-6'] == game[game_id]['piece-7'] == game[game_id]['piece-8']:
+    elif game[game_id]['piece-6'] != None and (game[game_id]['piece-6'] == game[game_id]['piece-7'] == game[game_id]['piece-8']):
         game[game_id]['winner'] = game[game_id]['piece-6']
-    if game[game_id]['piece-0'] == game[game_id]['piece-3'] == game[game_id]['piece-6']:
+    elif game[game_id]['piece-0'] != None and (game[game_id]['piece-0'] == game[game_id]['piece-3'] == game[game_id]['piece-6']):
         game[game_id]['winner'] = game[game_id]['piece-0']
-    if game[game_id]['piece-1'] == game[game_id]['piece-4'] == game[game_id]['piece-7']:
+    elif game[game_id]['piece-1'] != None and (game[game_id]['piece-1'] == game[game_id]['piece-4'] == game[game_id]['piece-7']):
         game[game_id]['winner'] = game[game_id]['piece-1']
-    if game[game_id]['piece-2'] == game[game_id]['piece-5'] == game[game_id]['piece-8']:
+    elif  game[game_id]['piece-2'] != None and (game[game_id]['piece-2'] == game[game_id]['piece-5'] == game[game_id]['piece-8']):
         game[game_id]['winner'] = game[game_id]['piece-2']
-    if game[game_id]['piece-0'] == game[game_id]['piece-4'] == game[game_id]['piece-8']:
+    elif game[game_id]['piece-0'] != None and (game[game_id]['piece-0'] == game[game_id]['piece-4'] == game[game_id]['piece-8']):
         game[game_id]['winner'] = game[game_id]['piece-0']
-    if game[game_id]['piece-2'] == game[game_id]['piece-4'] == game[game_id]['piece-6']:
+    elif game[game_id]['piece-2'] != None and (game[game_id]['piece-2'] == game[game_id]['piece-4'] == game[game_id]['piece-6']):
         game[game_id]['winner'] = game[game_id]['piece-2']
 
 
 def reset_game(game_id):
     global game
-    tmp = {'activePlayer': '0', 'winner': None,
-           'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+    p0_id = game['game-{}'.format(game_id)]['p0']
+    p1_id = game['game-{}'.format(game_id)]['p1']
+    tmp = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2,
+           'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     patch = jsonpatch.JsonPatch([{'op': 'add', 'path': '/game-{}'.format(game_id), 'value': tmp}])
     game = patch.apply(game)
