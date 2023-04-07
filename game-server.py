@@ -55,16 +55,18 @@ async def echo(websocket, path):
         if 'action' in json_message[0]:
             if json_message[0]['action'] == 'game_move':
                 await play_move(websocket, json_message)
-            if json_message[0]['action'] == 'set_player_name':
+            elif json_message[0]['action'] == 'set_player_name':
                 await set_player_name(websocket, json_message)
-            if json_message[0]['action'] == 'create_game':
+            elif json_message[0]['action'] == 'create_game':
                 await create_game(websocket, json_message)
-            if json_message[0]['action'] == 'join_game':
+            elif json_message[0]['action'] == 'join_game':
                 await join_game(websocket, json_message)
-            if json_message[0]['action'] == 'spectate_game':
+            elif json_message[0]['action'] == 'spectate_game':
                 await spectate_game(websocket, json_message)
-            if json_message[0]['action'] == 'get_game_state':
+            elif json_message[0]['action'] == 'get_game_state':
                 await get_game_state(websocket, json_message)
+            elif json_message[0]['action'] == 'rematch':
+                await rematch(websocket, json_message) 
 
 
 def check_winner(game_id):
@@ -90,8 +92,10 @@ def check_winner(game_id):
 def reset_game(game_id):
     global game
     p0_id = game['game-{}'.format(game_id)]['p0']
+    p0_name = player_names[p0_id]
     p1_id = game['game-{}'.format(game_id)]['p1']
-    tmp = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2,
+    p1_name = player_names[p1_id]
+    tmp = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 1, 'p0_name': p0_name, 'p1_name': p1_name,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     patch = jsonpatch.JsonPatch([{'op': 'add', 'path': '/game-{}'.format(game_id), 'value': tmp}])
@@ -117,6 +121,11 @@ async def play_move(websocket, message):
 
     try:
         game_id = message[0]['game_id']
+
+        if game['game-{}'.format(game_id)]['winner'] is not None:
+            ## this exception will be caught, preventing the move
+            raise Exception('Game is over.')
+
         ## take off the 'game-' part of game_id
         # game_id = game_id[5:]
         player_name = message[0]['player_id']
@@ -174,16 +183,15 @@ async def play_move(websocket, message):
 
         check_winner(game_id)
         websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
-        try:
-            patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/winner'.format(game_id), 'value': None}])
-            patch.apply(game)
-        except:
-            reset_game(game_id)
+
+        ## moved reset game logic to rematch function
+
+
 
         print(game['game-{}'.format(game_id)])
 
     except Exception as e:
-        ## send message to the client that attempted move if it is illegal
+        ## send message to the client that attempted move is illegal
         msg = json.dumps({'action': 'game_move', 'description': 'Illegal move'})
         await websocket.send(msg)
         print('illegal move')
@@ -225,8 +233,10 @@ async def create_game(websocket, message):
     ## CODE TO REDUCE SIZE OF GAME UUID FOR TESTING PURPOSES. CONSIDER REMOVING AT END:
     ###################################################################################
     game_uuid = game_uuid[:8]
+
+    p0_name = player_names[player_id]
     
-    tmp = {'game_id': game_uuid, 'p0': player_id, 'p1': None, 'activePlayer': '0', 'player_count': 1,
+    tmp = {'game_id': game_uuid, 'p0': player_id, 'p1': None, 'activePlayer': '0', 'player_count': 1, 'p0_name': p0_name, 'p1_name': None,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
     
@@ -272,6 +282,7 @@ async def join_game(websocket, message):
     
     # get new player id and game id from the received message
     new_player = message[0]['player_id']
+    p1_name = player_names[new_player]
     game_uuid = message[0]['game_id']
     ## NOTE: as of now player_id here will really be the username
 
@@ -283,6 +294,9 @@ async def join_game(websocket, message):
         # add the new player id into p1 for that game
         # patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/p1'.format(game_uuid), 'value': player_names[new_player]}])
         patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/p1'.format(game_uuid), 'value': new_player}])
+        game = patch.apply(game)
+
+        patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/p1_name'.format(game_uuid), 'value': p1_name}])
         game = patch.apply(game)
 
         player_count = game['game-{}'.format(game_uuid)]['player_count']
@@ -409,6 +423,67 @@ async def get_game_state(websocket, message):
         raise Exception("Failed to get gamestate.")
     
     return True
+
+async def rematch(websocket, message):
+    global game
+
+    game_id = message[0]['game_id']
+
+    if game['game-{}'.format(game_id)]['player_count'] == 2:
+        ## if count is 2 then this is first player to request rematch
+        reset_game(game_id)
+        await websocket.send(json.dumps(game['game-{}'.format(game_id)]))
+    elif game['game-{}'.format(game_id)]['player_count'] == 1:
+        ## if count is 1 then this is second player to request rematch
+        game['game-{}'.format(game_id)]['player_count'] = 2
+        connection = connections['game-{}'.format(game_id)]
+        websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
+    else:
+        ## some issue with rematch occurred if here
+        await websocket.send(json.dumps({'action': 'rematch', 'description': 'fail'}))  
+
+
+
+    ## ran into strange issues when I tried to implement this using jsonpatch
+    ## and was not able to debug these
+
+    # try:
+    #     patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/player_count'.format(game_id), 'value': 2}])
+    #     patch.apply(game)
+
+    #     ## don't think we need to check if winner if we manually reset game
+    #     # try:
+    #     #     patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/winner'.format(game_id), 'value': None}])
+    #     #     patch.apply(game)
+    #     # except:
+        
+    #     ## if first person to request rematch, then reset game
+    #     reset_game(game_id)
+        
+
+    #     await websocket.send(json.dumps(game['game-{}'.format(game_id)]))
+
+
+    # except:
+    #     ## otherwise second player to request rematch, so just adjust player_count back to 2
+    #     try:
+    #         print("here somehow")
+    #         patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/player_count'.format(game_id), 'value': 1}])
+    #         patch.apply(game)
+    #         patch = jsonpatch.JsonPatch([{'op': 'replace', 'path': '/game-{}/player_count'.format(game_id), 'value': 2}])
+    #         game = patch.apply(game)
+
+    #         connection = connections['game-{}'.format(game_id)]
+
+    #         print("after rematch game: ", game['game-{}'.format(game_id)])
+
+    #         websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
+
+    #     except:
+    #         ## some issue with rematch occurred if here
+    #         await websocket.send(json.dumps({'action': 'rematch', 'description': 'fail'}))
+
+
 
 
 

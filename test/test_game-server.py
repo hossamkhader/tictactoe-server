@@ -40,16 +40,16 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         await self.client.connect(WEBSOCKET_1)
         ## code for setting player name not necessary as of now since we aren't using player uuid anymore
         ## but I'm leaving here since it seems like it could be useful to go back to this later
-        # await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P0}]), WEBSOCKET_1)
-        # msg = await self.client.receive(WEBSOCKET_1)
-        # dictMsg = json.loads(msg)
-        # player_id = dictMsg['player_id']
+        await self.client.send(json.dumps([{'action': 'set_player_name', 'username': P0}]), WEBSOCKET_1)
+        msg = await self.client.receive(WEBSOCKET_1)
+        dictMsg = json.loads(msg)
+        player_id = dictMsg['player_id']
 
-        await self.client.send(json.dumps([{'action': 'create_game', 'player_id': P0}]), WEBSOCKET_1)
+        await self.client.send(json.dumps([{'action': 'create_game', 'player_id': player_id}]), WEBSOCKET_1)
         msg = await self.client.receive(WEBSOCKET_1)
         dictMsg = json.loads(msg)
 
-        expected = {'game_id': dictMsg['game_id'], 'p0': P0, 'p1': None, 'activePlayer': '0', 'player_count': 1,
+        expected = {'game_id': dictMsg['game_id'], 'p0': player_id, 'p1': None, 'activePlayer': '0', 'player_count': 1, 'p0_name': P0, 'p1_name': None,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
 
@@ -72,7 +72,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         dictMsg = json.loads(msg)
 
-        expected = {'game_id': dictMsg['game_id'], 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2,
+        expected = {'game_id': dictMsg['game_id'], 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2, 'p0_name': P0, 'p1_name': P1,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
         
@@ -103,7 +103,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         dictMsg = json.loads(msg)        
 
-        expected = {'game_id': dictMsg['game_id'], 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2,
+        expected = {'game_id': dictMsg['game_id'], 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2, 'p0_name': P0, 'p1_name': P1,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
 
@@ -124,7 +124,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         dictMsg = json.loads(msg)        
 
-        expected = {'game_id': dictMsg['game_id'], 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2,
+        expected = {'game_id': dictMsg['game_id'], 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2, 'p0_name': P0, 'p1_name': P1,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
         
@@ -167,7 +167,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         msg = await self.client.receive(WEBSOCKET_2)
         dictMsg = json.loads(msg)
 
-        expected = {'game_id': game_id, 'p0': p0_id, 'p1': None, 'activePlayer': '0', 'player_count': 1,
+        expected = {'game_id': game_id, 'p0': p0_id, 'p1': None, 'activePlayer': '0', 'player_count': 1, 'p0_name': P0, 'p1_name': None,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
         
@@ -182,7 +182,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         msg = await self.client.receive(WEBSOCKET_2)
         dictMsg = json.loads(msg)
 
-        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2,
+        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2, 'p0_name': P0, 'p1_name': P1,
            'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
 
@@ -197,7 +197,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         msg = await self.client.receive(WEBSOCKET_2)
         dictMsg = json.loads(msg)
 
-        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '1', 'player_count': 2,
+        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '1', 'player_count': 2, 'p0_name': P0, 'p1_name': P1,
            'winner': None, 'last_move': dictMsg['last_move'], 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
            'piece-4': None, 'piece-5': '0', 'piece-6': None, 'piece-7': None, 'piece-8': None}
         
@@ -211,7 +211,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         msg = await self.client.receive(WEBSOCKET_2)
         dictMsg = json.loads(msg)
 
-        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2,
+        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2, 'p0_name': P0, 'p1_name': P1,
             'winner': None, 'last_move': dictMsg['last_move'], 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': '1',
             'piece-4': None, 'piece-5': '0', 'piece-6': None, 'piece-7': None, 'piece-8': None}
         
@@ -243,7 +243,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         dictMsg = json.loads(msg)
         
         ## check the updated game-state
-        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '1', 'player_count': 2,
+        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '1', 'player_count': 2, 'p0_name': P0, 'p1_name': P1,
             'winner': None, 'last_move': dictMsg['last_move'], 'piece-0': '0', 'piece-1': None, 'piece-2': None, 'piece-3': None,
             'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}    
         self.assertEqual(expected, dictMsg)
@@ -406,6 +406,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         #################################
         # p0 gets 3, 4, 5
 
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
+
         move1 = self.get_move_json(p0_id, game_id, 3)
         move2 = self.get_move_json(p1_id, game_id, 2)
         move3 = self.get_move_json(p0_id, game_id, 4)
@@ -443,6 +445,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         #################################
         # p0 gets 6, 7, 8
 
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
+
         move1 = self.get_move_json(p0_id, game_id, 6)
         move2 = self.get_move_json(p1_id, game_id, 2)
         move3 = self.get_move_json(p0_id, game_id, 7)
@@ -478,6 +482,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(expected, winner2)
         #################################
         # p0 gets 0, 3, 6
+
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
 
         move1 = self.get_move_json(p0_id, game_id, 0)
         move2 = self.get_move_json(p1_id, game_id, 2)
@@ -515,6 +521,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         #################################
         # p0 gets 1, 4, 7
+
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
 
 
         move1 = self.get_move_json(p0_id, game_id, 1)
@@ -554,6 +562,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         #################################
         # p0 gets 2, 5, 8
 
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
+
         
         move1 = self.get_move_json(p0_id, game_id, 2)
         move2 = self.get_move_json(p1_id, game_id, 3)
@@ -592,6 +602,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         #################################
         # p0 gets 0, 4 ,8
 
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
+
          
         move1 = self.get_move_json(p0_id, game_id, 0)
         move2 = self.get_move_json(p1_id, game_id, 3)
@@ -629,6 +641,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         #################################
         # p0 gets 2, 4, 6   
+
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
 
          
         move1 = self.get_move_json(p0_id, game_id, 2)
@@ -671,6 +685,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         #################################
         # p1 gets 0, 1, 2
 
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
+
         move1 = self.get_move_json(p0_id, game_id, 3)
         move2 = self.get_move_json(p1_id, game_id, 0)
         move3 = self.get_move_json(p0_id, game_id, 5)
@@ -710,6 +726,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         #################################
         # p1 gets 3, 4, 5
+
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
 
         move1 = self.get_move_json(p0_id, game_id, 0)
         move2 = self.get_move_json(p1_id, game_id, 3)
@@ -751,6 +769,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         #################################
         # p1 gets 6, 7, 8
 
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
+
         move1 = self.get_move_json(p0_id, game_id, 0)
         move2 = self.get_move_json(p1_id, game_id, 6)
         move3 = self.get_move_json(p0_id, game_id, 1)
@@ -790,6 +810,10 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         #################################
         # p1 gets 0, 3, 6
+
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
+
+
         move1 = self.get_move_json(p0_id, game_id, 1)
         move2 = self.get_move_json(p1_id, game_id, 0)
         move3 = self.get_move_json(p0_id, game_id, 2)
@@ -829,6 +853,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         #################################
         # p1 gets 1, 4, 7
+
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
 
         move1 = self.get_move_json(p0_id, game_id, 3)
         move2 = self.get_move_json(p1_id, game_id, 1)
@@ -870,6 +896,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         #################################
         # p1 gets 2, 5, 8
 
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
+
         move1 = self.get_move_json(p0_id, game_id, 0)
         move2 = self.get_move_json(p1_id, game_id, 2)
         move3 = self.get_move_json(p0_id, game_id, 1)
@@ -909,6 +937,9 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         #################################
         # p1 gets 0, 4, 8
+
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)
+
         move1 = self.get_move_json(p0_id, game_id, 1)
         move2 = self.get_move_json(p1_id, game_id, 0)
         move3 = self.get_move_json(p0_id, game_id, 2)
@@ -948,7 +979,9 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         
         
         #################################
-        # p1 gets 2, 4, 6        
+        # p1 gets 2, 4, 6   
+         
+        await self.start_rematch(game_id, WEBSOCKET_1, WEBSOCKET_2)     
             
         move1 = self.get_move_json(p0_id, game_id, 0)
         move2 = self.get_move_json(p1_id, game_id, 2)
@@ -986,6 +1019,81 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(expected, winner)
         self.assertEqual(expected, winner2)
+
+
+
+
+    async def test_rematch(self):
+        await self.client.connect(WEBSOCKET_1)
+        await self.client.connect(WEBSOCKET_2)
+
+        connected = [WEBSOCKET_1, WEBSOCKET_2]
+
+        game = await self.game_for_testing(WEBSOCKET_1, WEBSOCKET_2)
+        game_id = game['game_id']
+        p0_id = game['p0']
+        p1_id = game['p1']
+        await self.client.receive(WEBSOCKET_1)
+        ## here ready to receive gamestate updates from moves
+
+        #################################
+        # start of game to rematch
+        move1 = self.get_move_json(p0_id, game_id, 0)
+        move2 = self.get_move_json(p1_id, game_id, 3)
+        move3 = self.get_move_json(p0_id, game_id, 1)
+        move4 = self.get_move_json(p1_id, game_id, 4)
+        move5 = self.get_move_json(p0_id, game_id, 2)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await self.send_move_clear_buffer(move3, WEBSOCKET_1, connected)
+        # await self.send_move_clear_buffer(move4, WEBSOCKET_2, connected)
+        # await self.send_move_clear_buffer(move5, WEBSOCKET_1, connected)
+        await self.client.send(move4, WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = None
+
+        await self.client.send(move5, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))
+
+        winner = msg['winner']
+        winner2 = msg2['winner']
+
+        expected = '0'
+
+        self.assertEqual(expected, winner)
+        self.assertEqual(expected, winner2)
+
+        #########################################
+        ## end of game to rematch
+
+        msg = [{'action': 'rematch', 'game_id': game_id}]
+        await self.client.send(json.dumps(msg), WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 1, 'p0_name': P0, 'p1_name': P1,
+           'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+           'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+        
+        self.assertEqual(expected, msg)
+
+        msg = [{'action': 'rematch', 'game_id': game_id}]
+        await self.client.send(json.dumps(msg), WEBSOCKET_2)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        msg2 = json.loads(await self.client.receive(WEBSOCKET_2))     
+
+        expected = {'game_id': game_id, 'p0': p0_id, 'p1': p1_id, 'activePlayer': '0', 'player_count': 2, 'p0_name': P0, 'p1_name': P1,
+           'winner': None, 'last_move': None, 'piece-0': None, 'piece-1': None, 'piece-2': None, 'piece-3': None,
+           'piece-4': None, 'piece-5': None, 'piece-6': None, 'piece-7': None, 'piece-8': None}
+        
+        self.assertEqual(expected, msg)
+        self.assertEqual(expected, msg2)
+        
         
                 
 ###############################################################
@@ -1031,6 +1139,15 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
     
     def get_move_json(self, player_id, game_id, piece_num):
         return json.dumps([{'action': 'game_move', 'game_id': game_id, 'player_id': player_id, 'piece': 'piece-{}'.format(piece_num)}])
+    
+    async def start_rematch(self, game_id, ws1, ws2):
+        msg = json.dumps([{'action': 'rematch', 'game_id': game_id}])
+        await self.client.send(msg, ws1)
+        await self.client.receive(ws1)
+
+        await self.client.send(msg, ws2)
+        await self.client.receive(ws1)
+        await self.client.receive(ws2)
 
     
     async def asyncTearDown(self):
