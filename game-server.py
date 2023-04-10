@@ -239,7 +239,7 @@ async def timer(game_id, player_id):
         await play_move(None, message)
         
 
-        timers['game-{}'.format(game_id)] = None
+        # timers['game-{}'.format(game_id)] = None
     except asyncio.CancelledError:
         print("timer canceled")
 
