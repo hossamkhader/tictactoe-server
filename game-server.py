@@ -7,6 +7,7 @@ import uuid
 import jsonpatch
 import websockets
 from datetime import datetime
+import random
 
 # dictionary that stores all the games' gamestate
 game = dict()
@@ -34,6 +35,8 @@ player_names = dict()
 # note: I think this can allow for easily adding spectators if we decide to, since spectators
 # can simply be added to the set of websockets, and prevented from making moves
 connections = dict()
+
+timers = dict()
 
 
 async def echo(websocket, path):
@@ -179,9 +182,22 @@ async def play_move(websocket, message):
             except:
                 ...
 
-
-
+        ## check if a timer exists for this game
+        if 'game-{}'.format(game_id) in timers.keys():
+            ## if the timer was not set to None, then cancel it
+            ## since a move was received in time
+            if timers['game-{}'.format(game_id)] is not None:
+                (timers['game-{}'.format(game_id)]).cancel()
+        
         check_winner(game_id)
+        ## start a timer for the next move if no winner yet
+        try:
+            patch = jsonpatch.JsonPatch([{'op': 'test', 'path': '/game-{}/winner'.format(game_id), 'value': None}])
+            patch.apply(game)
+            timers['game-{}'.format(game_id)] = asyncio.create_task(timer(game_id, player_name))
+        except:
+            ...
+
         websockets.broadcast(connection, json.dumps(game['game-{}'.format(game_id)]))
 
         ## moved reset game logic to rematch function
@@ -195,6 +211,37 @@ async def play_move(websocket, message):
         msg = json.dumps({'action': 'game_move', 'description': 'Illegal move'})
         await websocket.send(msg)
         print('illegal move')
+
+'''
+Timer task to use by play move. Picks a move at random if the timer expires.
+This task will be cancelled if a legal move is selected before the timer expires.
+The calling method has to handle cancellation of the task.
+'''
+async def timer(game_id, player_id):
+    ## sleep for 15 seconds
+    try:
+        for i in range(1, 16):
+            await asyncio.sleep(1)
+            print(i)
+
+        print("timer expired")
+
+        if game['game-{}'.format(game_id)]['p0'] == player_id:
+            opponent_id = game['game-{}'.format(game_id)]['p1']
+        else:
+            opponent_id = game['game-{}'.format(game_id)]['p0']
+
+        random_idx = random.randrange(9)
+        while(game['game-{}'.format(game_id)]['piece-{}'.format(random_idx)] is not None):
+            random_idx = random.randrange(9)
+        
+        message = [{'action': 'game_move', 'game_id': game_id, 'player_id': opponent_id, 'piece': 'piece-{}'.format(random_idx)}]
+        await play_move(None, message)
+        
+
+        # timers['game-{}'.format(game_id)] = None
+    except asyncio.CancelledError:
+        print("timer canceled")
 
 
 '''
