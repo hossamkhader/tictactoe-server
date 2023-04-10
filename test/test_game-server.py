@@ -5,6 +5,7 @@ import websockets
 import json
 import time
 
+
 ## constants used for indicating which websocket to use
 WEBSOCKET_1 = 1
 WEBSOCKET_2 = 2
@@ -1093,6 +1094,61 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         
         self.assertEqual(expected, msg)
         self.assertEqual(expected, msg2)
+
+    async def test_timer(self):
+        await self.client.connect(WEBSOCKET_1)
+        await self.client.connect(WEBSOCKET_2)
+
+        connected = [WEBSOCKET_1, WEBSOCKET_2]
+
+        game = await self.game_for_testing(WEBSOCKET_1, WEBSOCKET_2)
+        game_id = game['game_id']
+        p0_id = game['p0']
+        p1_id = game['p1']
+        await self.client.receive(WEBSOCKET_1)
+        ## here ready to receive gamestate updates from moves
+
+        move1 = self.get_move_json(p0_id, game_id, 0)
+        
+        move2 = self.get_move_json(p1_id, game_id, 3)
+        
+        move3 = self.get_move_json(p0_id, game_id, 1)
+
+        await self.send_move_clear_buffer(move1, WEBSOCKET_1, connected)
+        await asyncio.sleep(2)
+        await self.send_move_clear_buffer(move2, WEBSOCKET_2, connected)
+        await asyncio.sleep(4)
+        timer_start = time.time()
+        await self.client.send(move3, WEBSOCKET_1)
+        msg = json.loads(await self.client.receive(WEBSOCKET_1))
+        await self.client.receive(WEBSOCKET_2)
+
+        self.assertEqual('1', msg['activePlayer'])
+
+        msg = json.loads(await self.client.websocket.recv())
+        
+        timer_end = time.time()
+
+        elapsed = timer_end - timer_start
+
+        self.assertTrue(elapsed > 14.99)
+        self.assertEqual('0', msg['activePlayer'])
+
+        possible_choices = [2, 4, 5, 6, 7, 8]
+        was_random_choice = False
+        piece_chosen = None
+        for choice in possible_choices:
+            if msg['piece-{}'.format(choice)] == '1':
+                was_random_choice = True
+                piece_chosen = choice
+                
+        
+        self.assertTrue(was_random_choice)
+
+
+
+
+
         
         
                 
