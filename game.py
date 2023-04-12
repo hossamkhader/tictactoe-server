@@ -284,6 +284,15 @@ class TicTacToeGame(Game):
         elif game[game_id]['piece-2'] != None and (game[game_id]['piece-2'] == game[game_id]['piece-4'] == game[game_id]['piece-6']):
             game[game_id]['winner'] = game[game_id]['piece-2']
 
+        if game[game_id]['winner'] is None:
+            draw = True
+            for i in range(0, 9):
+                if game[game_id]['piece-{}'.format(i)] is None:
+                    draw = False
+            
+            if draw:
+                game[game_id]['winner'] = 'draw'
+
         self.from_json(game[game_id])
 
     '''
@@ -296,7 +305,7 @@ class TicTacToeGame(Game):
         try:
             for i in range(1, 16):
                 await asyncio.sleep(1)
-                print(i)
+                print("game-{}".format(self.game_id), "timer:", i)
 
             print("timer expired")
 
