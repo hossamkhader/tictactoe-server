@@ -73,24 +73,34 @@ async def echo(websocket, path):
 
 
 def check_winner(game_id):
+    
+
     game_id = 'game-{}'.format(game_id)
-    if game[game_id]['piece-0'] != None and (game[game_id]['piece-0'] == game[game_id]['piece-1'] == game[game_id]['piece-2']):
+    if game[game_id]['piece-0'] is not None and (game[game_id]['piece-0'] == game[game_id]['piece-1'] == game[game_id]['piece-2']):
         game[game_id]['winner'] = game[game_id]['piece-0']
-    elif game[game_id]['piece-3'] != None and (game[game_id]['piece-3'] == game[game_id]['piece-4'] == game[game_id]['piece-5']):
+    elif game[game_id]['piece-3'] is not None and (game[game_id]['piece-3'] == game[game_id]['piece-4'] == game[game_id]['piece-5']):
         game[game_id]['winner'] = game[game_id]['piece-3']
-    elif game[game_id]['piece-6'] != None and (game[game_id]['piece-6'] == game[game_id]['piece-7'] == game[game_id]['piece-8']):
+    elif game[game_id]['piece-6'] is not None and (game[game_id]['piece-6'] == game[game_id]['piece-7'] == game[game_id]['piece-8']):
         game[game_id]['winner'] = game[game_id]['piece-6']
-    elif game[game_id]['piece-0'] != None and (game[game_id]['piece-0'] == game[game_id]['piece-3'] == game[game_id]['piece-6']):
+    elif game[game_id]['piece-0'] is not None and (game[game_id]['piece-0'] == game[game_id]['piece-3'] == game[game_id]['piece-6']):
         game[game_id]['winner'] = game[game_id]['piece-0']
-    elif game[game_id]['piece-1'] != None and (game[game_id]['piece-1'] == game[game_id]['piece-4'] == game[game_id]['piece-7']):
+    elif game[game_id]['piece-1'] is not None and (game[game_id]['piece-1'] == game[game_id]['piece-4'] == game[game_id]['piece-7']):
         game[game_id]['winner'] = game[game_id]['piece-1']
-    elif  game[game_id]['piece-2'] != None and (game[game_id]['piece-2'] == game[game_id]['piece-5'] == game[game_id]['piece-8']):
+    elif  game[game_id]['piece-2'] is not None and (game[game_id]['piece-2'] == game[game_id]['piece-5'] == game[game_id]['piece-8']):
         game[game_id]['winner'] = game[game_id]['piece-2']
-    elif game[game_id]['piece-0'] != None and (game[game_id]['piece-0'] == game[game_id]['piece-4'] == game[game_id]['piece-8']):
+    elif game[game_id]['piece-0'] is not None and (game[game_id]['piece-0'] == game[game_id]['piece-4'] == game[game_id]['piece-8']):
         game[game_id]['winner'] = game[game_id]['piece-0']
-    elif game[game_id]['piece-2'] != None and (game[game_id]['piece-2'] == game[game_id]['piece-4'] == game[game_id]['piece-6']):
+    elif game[game_id]['piece-2'] is not None and (game[game_id]['piece-2'] == game[game_id]['piece-4'] == game[game_id]['piece-6']):
         game[game_id]['winner'] = game[game_id]['piece-2']
 
+    if game[game_id]['winner'] is None:
+        draw = True
+        for i in range(0, 9):
+            if game[game_id]['piece-{}'.format(i)] is None:
+                draw = False
+        
+        if draw:
+            game[game_id]['winner'] = 'draw'
 
 def reset_game(game_id):
     global game
