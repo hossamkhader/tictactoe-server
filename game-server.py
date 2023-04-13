@@ -55,6 +55,7 @@ async def client_message_handler(websocket, path):
 
 
 
+
 '''
 Code for handling an operation that plays a move was moved here. This takes the operation
 that was received by the websocket and applies a JSONpatch to the relevant game to make
