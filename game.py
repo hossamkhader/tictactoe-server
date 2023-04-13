@@ -387,8 +387,11 @@ class Player():
         self.player_piece = None
 
     def set_player_name(self, player_name):
-        if self.is_valid_player_name(player_name):
-            self.player_name = player_name
+        # taking this out for now since we had not specified any name requirements
+        # if self.is_valid_player_name(player_name):
+        #     self.player_name = player_name
+
+        self.player_name = player_name
     
     ## will have to handle duplicate player names in the server code
     def is_valid_player_name(self, player_name):

@@ -25,7 +25,7 @@ REQUIRED_PLAYERS = 2
 
 
 
-async def echo(websocket, path):
+async def client_message_handler(websocket, path):
 
 
     async for message in websocket:
@@ -296,7 +296,7 @@ async def rematch(websocket, message):
 
 
 async def main():
-    async with websockets.serve(echo, "0.0.0.0", 8000):
+    async with websockets.serve(client_message_handler, "0.0.0.0", 8000):
         print("WebSocket server started")
         await asyncio.Future()  # Run forever
 
