@@ -51,6 +51,8 @@ async def client_message_handler(websocket, path):
                 await get_game_state(websocket, json_message)
             elif json_message[0]['action'] == 'rematch':
                 await rematch(websocket, json_message) 
+            elif json_message[0]['action'] == 'exit_game':
+                await exit_game(websocket, json_message)
 
 
 
@@ -291,6 +293,31 @@ async def rematch(websocket, message):
     game = games[game_id]
 
     await game.rematch(websocket)
+
+async def exit_game(websocket, message):
+    game_id = message[0]['game_id']
+
+    try:
+        game = games[game_id]
+
+        msg = {'action': 'exit_game', 'description': 'success'}
+
+        ## send exit message to all clients so they can transition to correct screen
+        websockets.broadcast(game.sockets, json.dumps(msg))
+
+        ## remove the game from the dictionary as it is no longer in use
+        games.pop(game_id)
+
+    except Exception as e:
+
+        fail_msg = {'action': 'exit_game', 'description': 'fail'}
+        ## send a message to the requesting client if exit game failed
+        await websocket.send(json.dumps(fail_msg))
+
+
+
+
+
 
 
 

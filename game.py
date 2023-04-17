@@ -166,6 +166,8 @@ class TicTacToeGame(Game):
         if game['game-{}'.format(game_id)]['winner'] is not None:
             ## this exception will be caught, preventing the move
             raise Exception('Game is over.')
+        if game['game-{}'.format(game_id)]['player_count'] != 2:
+            raise Exception('Waiting for 2nd player.')
 
         ## take off the 'game-' part of game_id
         # game_id = game_id[5:]
