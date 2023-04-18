@@ -289,10 +289,16 @@ async def get_game_state(websocket, message):
 
 async def rematch(websocket, message):
 
-    game_id = message[0]['game_id']
-    game = games[game_id]
+    try:
+        game_id = message[0]['game_id']
+        game = games[game_id]
 
-    await game.rematch(websocket)
+        await game.rematch(websocket)
+        
+    except Exception as e:
+        fail_msg = {'action': 'rematch', 'description': 'fail'}
+        ## send a message to the requesting client rematch failed
+        await websocket.send(json.dumps(fail_msg))       
 
 async def exit_game(websocket, message):
     game_id = message[0]['game_id']
