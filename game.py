@@ -110,9 +110,10 @@ class TicTacToeGame(Game):
         return game_state
     
     def from_json(self, game_state):
+        
         self.winner = game_state['winner']
         self.active_player = game_state['activePlayer']
-        self.last_Move = game_state['last_move']
+        self.last_move = game_state['last_move']
         self.board['piece-0'] = game_state['piece-0']
         self.board['piece-1'] = game_state['piece-1']
         self.board['piece-2'] = game_state['piece-2']
