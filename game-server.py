@@ -29,7 +29,7 @@ async def client_message_handler(websocket, path):
 
 
     async for message in websocket:
-        print("message received by websocket:", message)
+        print("\nmessage received by websocket:", message)
         # game_id = websocket.request_headers['game-id']
         json_message = json.loads(message)
 
@@ -92,7 +92,7 @@ async def play_move(websocket, message):
         player = players[player_id]
         
         await game.game_move(player, piece)
-        print(game.to_json())
+        # print(game.to_json())
 
     except Exception as e:
         ## send message to the client that attempted move is illegal
