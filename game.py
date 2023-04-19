@@ -252,7 +252,7 @@ class TicTacToeGame(Game):
 
 
 
-        print(game['game-{}'.format(game_id)])
+        print("\n", game['game-{}'.format(game_id)], "\n")
         return 
 
         # except Exception as e:
@@ -307,8 +307,9 @@ class TicTacToeGame(Game):
             ## sleep for 15 seconds
         try:
             for i in range(1, 16):
+                print("game-{}".format(self.game_id), "timer:", 16 - i)
                 await asyncio.sleep(1)
-                print("game-{}".format(self.game_id), "timer:", i)
+                
 
             print("timer expired")
 
